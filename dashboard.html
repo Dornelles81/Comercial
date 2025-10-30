@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Comercial - Prospecção</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .filters {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .table-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            opacity: 0.9;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-contrato {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-sem-contrato {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-licitacao {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-proprio {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dashboard Comercial</h1>
+            <p class="subtitle">Gestão de Prospecção - Hospitais São Paulo</p>
+        </header>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3 class="chart-title">Status dos Contratos</h3>
+                <canvas id="contratoChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">Público x Privado</h3>
+                <canvas id="tipoChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">Top 10 Grupos</h3>
+                <canvas id="grupoChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">Contatos por Mês (2024)</h3>
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label>Buscar:</label>
+                <input type="text" id="searchInput" placeholder="Nome, responsável, grupo..." style="flex: 1; min-width: 250px;">
+
+                <label>Tipo:</label>
+                <select id="tipoFilter">
+                    <option value="">Todos</option>
+                    <option value="PRIVADO">Privado</option>
+                    <option value="PÚBLICO">Público</option>
+                </select>
+
+                <label>Status Contrato:</label>
+                <select id="contratoFilter">
+                    <option value="">Todos</option>
+                    <option value="COM_CONTRATO">Com Contrato</option>
+                    <option value="SEM_CONTRATO">Sem Contrato</option>
+                    <option value="LICITACAO">Licitação</option>
+                    <option value="PROPRIO">Próprio</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="contactsTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Nome</th>
+                        <th onclick="sortTable(1)">Tipo</th>
+                        <th onclick="sortTable(2)">Grupo</th>
+                        <th onclick="sortTable(3)">Responsável</th>
+                        <th onclick="sortTable(4)">Cargo</th>
+                        <th onclick="sortTable(5)">Telefone</th>
+                        <th onclick="sortTable(6)">E-mail</th>
+                        <th onclick="sortTable(7)">Último Contato</th>
+                        <th onclick="sortTable(8)">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+
+        // Carregar dados
+        async function loadData() {
+            const response = await fetch('data.json');
+            allData = await response.json();
+            filteredData = allData;
+
+            updateStats();
+            createCharts();
+            renderTable();
+        }
+
+        // Atualizar estatísticas
+        function updateStats() {
+            const stats = [
+                {
+                    label: 'Total de Contatos',
+                    value: filteredData.length
+                },
+                {
+                    label: 'Com Contrato',
+                    value: filteredData.filter(d => d.CONTRATO && !['LICITAÇÃO', 'LICITA��O', 'Licita��o', 'PRÓPRIO', 'PR�PRIO'].includes(String(d.CONTRATO).trim())).length
+                },
+                {
+                    label: 'Contatos este Mês',
+                    value: filteredData.filter(d => {
+                        if (!d['DATA DO ÚLTIMO CONTATO ']) return false;
+                        const date = new Date(d['DATA DO ÚLTIMO CONTATO ']);
+                        const now = new Date();
+                        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                    }).length
+                },
+                {
+                    label: 'Grupos Únicos',
+                    value: new Set(filteredData.filter(d => d.GRUPO).map(d => d.GRUPO)).size
+                }
+            ];
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = stats.map(stat => `
+                <div class="stat-card">
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                </div>
+            `).join('');
+        }
+
+        // Criar gráficos
+        function createCharts() {
+            // Gráfico de Contratos
+            const contratoData = {};
+            filteredData.forEach(d => {
+                let status = 'Sem Contrato';
+                if (d.CONTRATO) {
+                    const contratoStr = String(d.CONTRATO).trim().toUpperCase();
+                    if (['LICITAÇÃO', 'LICITA��O', 'LICITACAO'].includes(contratoStr)) {
+                        status = 'Licitação';
+                    } else if (['PRÓPRIO', 'PR�PRIO', 'PROPRIO'].includes(contratoStr)) {
+                        status = 'Próprio';
+                    } else {
+                        status = 'Com Contrato';
+                    }
+                }
+                contratoData[status] = (contratoData[status] || 0) + 1;
+            });
+
+            new Chart(document.getElementById('contratoChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(contratoData),
+                    datasets: [{
+                        data: Object.values(contratoData),
+                        backgroundColor: ['#4CAF50', '#FFC107', '#2196F3', '#F44336'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico Público x Privado
+            const tipoData = {};
+            filteredData.forEach(d => {
+                const tipo = d['PÚBLICO / PRIVADO'] ? String(d['PÚBLICO / PRIVADO']).trim().replace('�', 'Ú') : 'Não informado';
+                tipoData[tipo] = (tipoData[tipo] || 0) + 1;
+            });
+
+            new Chart(document.getElementById('tipoChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(tipoData),
+                    datasets: [{
+                        data: Object.values(tipoData),
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Grupos (Top 10)
+            const grupoData = {};
+            filteredData.forEach(d => {
+                if (d.GRUPO) {
+                    grupoData[d.GRUPO] = (grupoData[d.GRUPO] || 0) + 1;
+                }
+            });
+
+            const topGrupos = Object.entries(grupoData)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            new Chart(document.getElementById('grupoChart'), {
+                type: 'bar',
+                data: {
+                    labels: topGrupos.map(g => g[0].length > 20 ? g[0].substring(0, 20) + '...' : g[0]),
+                    datasets: [{
+                        label: 'Número de Contatos',
+                        data: topGrupos.map(g => g[1]),
+                        backgroundColor: '#667eea',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Timeline
+            const timelineData = {};
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            months.forEach(m => timelineData[m] = 0);
+
+            filteredData.forEach(d => {
+                if (d['DATA DO ÚLTIMO CONTATO ']) {
+                    const date = new Date(d['DATA DO ÚLTIMO CONTATO ']);
+                    if (date.getFullYear() === 2024) {
+                        const month = months[date.getMonth()];
+                        timelineData[month]++;
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('timelineChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Contatos',
+                        data: months.map(m => timelineData[m]),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Renderizar tabela
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum contato encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(contact => {
+                let statusHtml = '<span class="status-badge status-sem-contrato">Sem Contrato</span>';
+                if (contact.CONTRATO) {
+                    const contratoStr = String(contact.CONTRATO).trim().toUpperCase();
+                    if (['LICITAÇÃO', 'LICITA��O', 'LICITACAO'].includes(contratoStr)) {
+                        statusHtml = '<span class="status-badge status-licitacao">Licitação</span>';
+                    } else if (['PRÓPRIO', 'PR�PRIO', 'PROPRIO'].includes(contratoStr)) {
+                        statusHtml = '<span class="status-badge status-proprio">Próprio</span>';
+                    } else {
+                        statusHtml = `<span class="status-badge status-contrato">Contrato ${contact.CONTRATO}</span>`;
+                    }
+                }
+
+                const lastContact = contact['DATA DO ÚLTIMO CONTATO ']
+                    ? new Date(contact['DATA DO ÚLTIMO CONTATO ']).toLocaleDateString('pt-BR')
+                    : '-';
+
+                return `
+                    <tr>
+                        <td>${contact.NOME || '-'}</td>
+                        <td>${contact['PÚBLICO / PRIVADO'] || '-'}</td>
+                        <td>${contact.GRUPO || '-'}</td>
+                        <td>${contact['RESPONSÁVEL '] || '-'}</td>
+                        <td>${contact['CARGO '] || '-'}</td>
+                        <td>${contact['TELEFONE '] || '-'}</td>
+                        <td>${contact['E-MAIL '] || '-'}</td>
+                        <td>${lastContact}</td>
+                        <td>${statusHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filtros
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('tipoFilter').addEventListener('change', applyFilters);
+        document.getElementById('contratoFilter').addEventListener('change', applyFilters);
+
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const tipo = document.getElementById('tipoFilter').value.toUpperCase();
+            const contratoFilter = document.getElementById('contratoFilter').value;
+
+            filteredData = allData.filter(contact => {
+                const matchSearch = !search ||
+                    (contact.NOME || '').toLowerCase().includes(search) ||
+                    (contact['RESPONSÁVEL '] || '').toLowerCase().includes(search) ||
+                    (contact.GRUPO || '').toLowerCase().includes(search);
+
+                const matchTipo = !tipo ||
+                    (contact['PÚBLICO / PRIVADO'] || '').toUpperCase().includes(tipo);
+
+                let matchContrato = true;
+                if (contratoFilter === 'COM_CONTRATO') {
+                    matchContrato = contact.CONTRATO &&
+                        !['LICITAÇÃO', 'LICITA��O', 'Licita��o', 'PRÓPRIO', 'PR�PRIO'].includes(String(contact.CONTRATO).trim());
+                } else if (contratoFilter === 'SEM_CONTRATO') {
+                    matchContrato = !contact.CONTRATO;
+                } else if (contratoFilter === 'LICITACAO') {
+                    matchContrato = contact.CONTRATO &&
+                        ['LICITAÇÃO', 'LICITA��O', 'LICITACAO'].includes(String(contact.CONTRATO).trim().toUpperCase());
+                } else if (contratoFilter === 'PROPRIO') {
+                    matchContrato = contact.CONTRATO &&
+                        ['PRÓPRIO', 'PR�PRIO', 'PROPRIO'].includes(String(contact.CONTRATO).trim().toUpperCase());
+                }
+
+                return matchSearch && matchTipo && matchContrato;
+            });
+
+            updateStats();
+            renderTable();
+        }
+
+        // Ordenação de tabela
+        let sortColumn = -1;
+        let sortAsc = true;
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortAsc = !sortAsc;
+            } else {
+                sortColumn = column;
+                sortAsc = true;
+            }
+
+            const columnMap = [
+                'NOME',
+                'PÚBLICO / PRIVADO',
+                'GRUPO',
+                'RESPONSÁVEL ',
+                'CARGO ',
+                'TELEFONE ',
+                'E-MAIL ',
+                'DATA DO ÚLTIMO CONTATO ',
+                'CONTRATO'
+            ];
+
+            filteredData.sort((a, b) => {
+                const field = columnMap[column];
+                let aVal = a[field] || '';
+                let bVal = b[field] || '';
+
+                if (column === 7) { // Data
+                    aVal = a[field] ? new Date(a[field]) : new Date(0);
+                    bVal = b[field] ? new Date(b[field]) : new Date(0);
+                }
+
+                if (aVal < bVal) return sortAsc ? -1 : 1;
+                if (aVal > bVal) return sortAsc ? 1 : -1;
+                return 0;
+            });
+
+            renderTable();
+        }
+
+        // Inicializar
+        loadData();
+    </script>
+</body>
+</html>
