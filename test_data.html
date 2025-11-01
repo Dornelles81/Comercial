@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste de Dados</title>
+</head>
+<body>
+    <h1>Teste de Carregamento de Dados</h1>
+    <div id="output"></div>
+
+    <script>
+        async function testLoad() {
+            try {
+                console.log('Tentando carregar...');
+                const response = await fetch('all_sheets_data.json');
+                console.log('Response:', response);
+
+                const data = await response.json();
+                console.log('Data:', data);
+
+                document.getElementById('output').innerHTML = `
+                    <h2>Dados Carregados com Sucesso!</h2>
+                    <p>Total de abas: ${data.sheets.length}</p>
+                    <ul>
+                        ${data.sheets.map(s => `<li>${s.name}: ${s.total_records} registros</li>`).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('output').innerHTML = `<p style="color: red;">ERRO: ${error.message}</p>`;
+            }
+        }
+
+        testLoad();
+    </script>
+</body>
+</html>

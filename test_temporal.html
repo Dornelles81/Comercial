@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Gráfico Temporal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        .chart-container {
+            height: 400px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teste - Gráfico de Evolução Temporal</h1>
+
+        <h2>Hospitais SP - Últimos 12 Meses</h2>
+        <div class="chart-container">
+            <canvas id="chartTemporal"></canvas>
+        </div>
+
+        <h2>Resumo Consolidado</h2>
+        <div class="chart-container">
+            <canvas id="chartConsolidado"></canvas>
+        </div>
+
+        <div id="debug"></div>
+    </div>
+
+    <script>
+        async function testTemporalChart() {
+            try {
+                const response = await fetch('all_sheets_data.json');
+                const data = await response.json();
+
+                const debug = document.getElementById('debug');
+                debug.innerHTML = '<h3>Debug Info:</h3>';
+
+                // Teste 1: Gráfico individual
+                const hospitaisSP = data.sheets[0];
+                const temporalData = hospitaisSP.statistics?.ultimos_12_meses;
+
+                debug.innerHTML += `<p>Dados encontrados: ${JSON.stringify(temporalData)}</p>`;
+
+                if (temporalData) {
+                    const meses = Object.keys(temporalData).sort();
+                    const valores = meses.map(mes => temporalData[mes]);
+
+                    debug.innerHTML += `<p>Meses: ${meses.join(', ')}</p>`;
+                    debug.innerHTML += `<p>Valores: ${valores.join(', ')}</p>`;
+
+                    const ctx1 = document.getElementById('chartTemporal');
+                    new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: meses,
+                            datasets: [{
+                                label: 'Contatos Realizados',
+                                data: valores,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 3,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: '#667eea'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Quantidade de Contatos'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Período (Mês/Ano)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Teste 2: Consolidado
+                const consolidado = {};
+                data.sheets
+                    .filter(s => s.name !== 'Oportunidades')
+                    .forEach(sheet => {
+                        if (sheet.statistics?.ultimos_12_meses) {
+                            Object.entries(sheet.statistics.ultimos_12_meses).forEach(([mes, valor]) => {
+                                consolidado[mes] = (consolidado[mes] || 0) + valor;
+                            });
+                        }
+                    });
+
+                const mesesCons = Object.keys(consolidado).sort();
+                const valoresCons = mesesCons.map(mes => consolidado[mes]);
+
+                debug.innerHTML += `<p><strong>Consolidado:</strong></p>`;
+                debug.innerHTML += `<p>Meses: ${mesesCons.join(', ')}</p>`;
+                debug.innerHTML += `<p>Valores: ${valoresCons.join(', ')}</p>`;
+
+                const ctx2 = document.getElementById('chartConsolidado');
+                new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: mesesCons,
+                        datasets: [{
+                            label: 'Contatos Consolidados',
+                            data: valoresCons,
+                            borderColor: '#43e97b',
+                            backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#43e97b'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Quantidade de Contatos'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Período (Mês/Ano)'
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('debug').innerHTML = `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        }
+
+        testTemporalChart();
+    </script>
+</body>
+</html>

@@ -5,6 +5,15 @@
 # Dados processados (podem ser grandes)
 dashboard_data.json
 data.json
+all_sheets_data.json
+
+# Pasta de uploads
+uploads/
+
+# Planilhas Excel (dados potencialmente sensíveis)
+*.xlsx
+*.xls
+!requirements.txt
 
 # Python
 __pycache__/

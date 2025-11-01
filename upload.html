@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload de Planilha Excel - Dashboard Comercial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #43e97b;
+            background: #e8fff4;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-info {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .current-data {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .current-data h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .sheets-list {
+            list-style: none;
+        }
+
+        .sheets-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sheets-list li:last-child {
+            border-bottom: none;
+        }
+
+        .sheet-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .sheet-count {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .links {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .link-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 5px;
+            border: 2px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .link-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📊 Upload de Planilha Excel</h1>
+            <p class="subtitle">Atualize os dados do dashboard fazendo upload de uma nova planilha</p>
+
+            <!-- Dados Atuais -->
+            <div class="current-data" id="currentData" style="display: none;">
+                <h3>Dados Atualmente Carregados</h3>
+                <div id="currentDataContent"></div>
+            </div>
+
+            <!-- Links -->
+            <div class="links" style="margin-top: 0; margin-bottom: 30px;">
+                <a href="http://localhost:8000/dashboard_completo.html" class="link-btn" target="_blank">
+                    📈 Ver Dashboard
+                </a>
+            </div>
+
+            <!-- Mensagens -->
+            <div class="message" id="message"></div>
+
+            <!-- Barra de Progresso -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                </div>
+                <div id="progressText" style="text-align: center; color: #666;">Processando arquivo...</div>
+            </div>
+
+            <!-- Área de Upload (Rodapé) -->
+            <div style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%); border-radius: 15px; border: 3px solid #667eea;">
+                <h3 style="color: #667eea; text-align: center; margin-bottom: 20px; font-size: 1.5em;">📥 Importar Nova Planilha</h3>
+                <div class="upload-area" id="uploadArea" style="background: white;">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Clique aqui ou arraste seu arquivo Excel</div>
+                    <div class="upload-subtext">Formatos aceitos: .xlsx, .xls (máx. 50MB)</div>
+                </div>
+
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+
+                <!-- Informações do Arquivo -->
+                <div class="file-info" id="fileInfo" style="margin-top: 20px;">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                </div>
+
+                <!-- Botão de Upload -->
+                <button class="btn" id="uploadBtn" disabled>📤 Fazer Upload e Processar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const message = document.getElementById('message');
+        const currentData = document.getElementById('currentData');
+        const currentDataContent = document.getElementById('currentDataContent');
+
+        let selectedFile = null;
+
+        // Carregar dados atuais
+        async function loadCurrentData() {
+            try {
+                const response = await fetch('http://localhost:5000/current-data');
+                const result = await response.json();
+
+                if (result.success) {
+                    currentData.style.display = 'block';
+                    const lastUpdated = new Date(result.data.last_updated).toLocaleString('pt-BR');
+
+                    currentDataContent.innerHTML = `
+                        <p style="margin-bottom: 10px;"><strong>Última atualização:</strong> ${lastUpdated}</p>
+                        <p style="margin-bottom: 10px;"><strong>Total de abas:</strong> ${result.data.sheets_count}</p>
+                        <ul class="sheets-list">
+                            ${result.data.sheets.map(sheet => `
+                                <li>
+                                    <span class="sheet-name">${sheet.name}</span>
+                                    <span class="sheet-count">${sheet.records} registros</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                }
+            } catch (error) {
+                console.log('Nenhum dado carregado ainda');
+            }
+        }
+
+        // Carregar dados ao iniciar
+        loadCurrentData();
+
+        // Click na área de upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // Seleção de arquivo
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Processar arquivo selecionado
+        function handleFile(file) {
+            // Verificar extensão
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'xlsx' && ext !== 'xls') {
+                showMessage('Formato de arquivo inválido. Use .xlsx ou .xls', 'error');
+                return;
+            }
+
+            // Verificar tamanho
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                showMessage('Arquivo muito grande. Tamanho máximo: 50MB', 'error');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Mostrar informações do arquivo
+            fileName.textContent = `📄 ${file.name}`;
+            fileSize.textContent = `Tamanho: ${formatFileSize(file.size)}`;
+            fileInfo.classList.add('show');
+
+            // Habilitar botão
+            uploadBtn.disabled = false;
+        }
+
+        // Fazer upload
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Preparar FormData
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            // Mostrar progresso
+            progressContainer.classList.add('show');
+            message.classList.remove('show');
+            uploadBtn.disabled = true;
+
+            // Simular progresso
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                if (progress <= 90) {
+                    updateProgress(progress);
+                }
+            }, 200);
+
+            try {
+                const response = await fetch('http://localhost:5000/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                updateProgress(100);
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setTimeout(() => {
+                        showMessage(`
+                            ✅ Arquivo processado com sucesso!<br>
+                            <strong>${result.data.sheets_count}</strong> abas detectadas e processadas.<br>
+                            <small>O dashboard foi atualizado automaticamente.</small>
+                        `, 'success');
+
+                        // Recarregar dados atuais
+                        loadCurrentData();
+
+                        // Resetar
+                        resetForm();
+                    }, 500);
+                } else {
+                    showMessage(`❌ Erro: ${result.error}`, 'error');
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                showMessage(`❌ Erro ao fazer upload: ${error.message}`, 'error');
+                uploadBtn.disabled = false;
+            } finally {
+                progressContainer.classList.remove('show');
+            }
+        });
+
+        // Funções auxiliares
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = percent + '%';
+        }
+
+        function showMessage(msg, type) {
+            message.innerHTML = msg;
+            message.className = 'message show ' + type;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function resetForm() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            uploadBtn.disabled = true;
+            progressFill.style.width = '0%';
+        }
+    </script>
+</body>
+</html>
