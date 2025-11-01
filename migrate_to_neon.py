@@ -5,6 +5,19 @@ import json
 import os
 from database.db import Database
 
+# Carregar variáveis do arquivo .env
+def load_env():
+    """Carrega variáveis de ambiente do arquivo .env"""
+    if os.path.exists('.env'):
+        with open('.env', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+
+load_env()
+
 def migrate_data():
     """Migra dados do all_sheets_data.json para o banco Neon"""
 

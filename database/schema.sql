@@ -4,7 +4,7 @@
 -- Tabela de Sheets (abas da planilha)
 CREATE TABLE IF NOT EXISTS sheets (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     total_records INTEGER NOT NULL,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     source_file VARCHAR(500),
@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS records (
 CREATE INDEX IF NOT EXISTS idx_records_sheet_id ON records(sheet_id);
 
 -- Índice para busca em campos JSONB comuns
-CREATE INDEX IF NOT EXISTS idx_records_nome ON records USING GIN ((data->>'NOME'));
-CREATE INDEX IF NOT EXISTS idx_records_cidade ON records USING GIN ((data->>'CIDADE'));
+-- GIN index for JSONB data (full document search)
+CREATE INDEX IF NOT EXISTS idx_records_data ON records USING GIN (data);
 
 -- Tabela de Estatísticas (dados agregados por sheet)
 CREATE TABLE IF NOT EXISTS statistics (
