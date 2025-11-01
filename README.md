@@ -1,232 +1,169 @@
-# Dashboard de Prospecção Comercial
+# 📊 Dashboard Comercial - Prospecção Multi-Regional
 
-Sistema de visualização e análise de dados de prospecção comercial com suporte a múltiplos segmentos.
+Sistema de dashboard comercial com análise temporal, upload de planilhas Excel e visualizações interativas.
 
-## 📊 Características
+## 🚀 Features
 
-- **Dashboard Dinâmico**: Sistema automaticamente detecta e cria abas para novos segmentos
-- **Multi-Estados**: Visualização de hospitais por estado (SP, RS, SC, PR)
-- **Segmentos Personalizados**: Suporte automático para novos segmentos (Parques, etc.)
-- **Oportunidades**: Seção especial para negócios prioritários que precisam acompanhamento
-- **Análise Visual**: Gráficos interativos com Chart.js
-- **Busca Avançada**: Filtros e busca em tempo real
-- **Design Moderno**: Interface responsiva e profissional
+- ✅ Dashboard multi-regional (SP, RS, SC, PR + Parques)
+- ✅ Upload e processamento dinâmico de planilhas Excel
+- ✅ Gráficos de evolução temporal (últimos 12 meses)
+- ✅ Funil de vendas para oportunidades
+- ✅ Estatísticas consolidadas e por região
+- ✅ Filtros e busca em tempo real
+- ✅ Banco de dados PostgreSQL (Neon) para persistência
+- ✅ Deploy serverless na Vercel
 
-## 📁 Estrutura do Projeto
+## 🗄️ Arquitetura
 
-```
-Dashboard Comercial/
-├── Lista Prospecçao.xlsx      # Arquivo Excel com dados (múltiplas abas)
-├── app.py                      # Servidor Flask com upload ⭐ NOVO
-├── process_data.py             # Script para processar dados do Excel
-├── dashboard_data.json         # Dados processados (gerado automaticamente)
-├── index.html                  # Dashboard principal com upload ⭐ ATUALIZADO
-├── requirements.txt            # Dependências Python ⭐ NOVO
-├── README.md                   # Esta documentação
-├── analyze_excel.py            # Script de análise (legado)
-├── dashboard.html              # Dashboard antigo (legado)
-└── data.json                   # Dados antigos (legado)
-```
+- **Frontend**: HTML/CSS/JavaScript + Chart.js
+- **Backend**: Python/Flask (Serverless Functions)
+- **Database**: PostgreSQL (Neon)
+- **Hosting**: Vercel
 
-## 🚀 Como Usar
+## 📦 Deploy na Vercel
 
-### Método 1: Com Servidor Flask (Recomendado - Suporta Upload)
+### 1️⃣ Criar conta no Neon PostgreSQL
 
-```bash
-python app.py
-```
+1. Acesse: https://console.neon.tech/signup
+2. Crie uma conta (pode usar GitHub)
+3. Crie um novo projeto
+4. Copie a **Connection String** (começa com `postgresql://...`)
 
-**Acesse:** http://localhost:5000
+### 2️⃣ Deploy na Vercel
 
-**Funcionalidades:**
-- ✅ Dashboard interativo completo
-- ✅ Upload de arquivo Excel via interface
-- ✅ Processamento automático
-- ✅ Atualização em tempo real
+#### Opção A: Via GitHub (Recomendado)
 
-### Método 2: Processamento Manual (Opcional)
+1. Acesse: https://vercel.com/new
+2. Importe o repositório GitHub: `Dornelles81/Comercial`
+3. Configure as variáveis de ambiente:
+   - Clique em "Environment Variables"
+   - Adicione: `DATABASE_URL` = `sua_connection_string_do_neon`
+4. Clique em "Deploy"
 
-Se preferir processar o Excel manualmente antes de visualizar:
+#### Opção B: Via Vercel CLI
 
 ```bash
-python process_data.py
+# Instalar Vercel CLI
+npm i -g vercel
+
+# Login
+vercel login
+
+# Deploy
+cd "D:\Projetos\Dashboard Comercial"
+vercel --prod
+
+# Adicionar variável de ambiente
+vercel env add DATABASE_URL
+# Cole a connection string do Neon quando solicitado
 ```
 
-Este script irá:
-- Ler todas as abas do arquivo Excel
-- Processar estados (Hospitais SP, RS, SC, PR)
-- Processar segmentos automaticamente (Parques, etc.)
-- Processar oportunidades prioritárias
-- Gerar o arquivo `dashboard_data.json`
+### 3️⃣ Inicializar o Banco de Dados
 
-## 📋 Estrutura do Excel
+Após o deploy, rode este script para criar as tabelas:
 
-O sistema processa automaticamente as seguintes abas:
+```python
+from database.db import Database
 
-### Abas de Estados (Hospitais)
-- `Hospitais SP`
-- `Hospitais RS`
-- `Hospitais SC`
-- `Hospitais PR`
+db = Database()  # Usa DATABASE_URL automaticamente
+db.init_database()
+```
 
-### Aba de Oportunidades
-- `Oportunidades` - Negócios prioritários que precisam acompanhamento especial
+Ou via SQL direto no Neon Console:
+1. Acesse o Neon Console
+2. Vá em "SQL Editor"
+3. Cole o conteúdo de `database/schema.sql`
+4. Execute
 
-### Abas de Segmentos (Dinâmicas)
-- `Parques` - ou qualquer outra aba adicional
-- O sistema cria automaticamente abas no dashboard para qualquer nova aba no Excel
-- **Novas abas são detectadas automaticamente!**
+### 4️⃣ Fazer Upload da Primeira Planilha
 
-## ➕ Adicionando Novos Segmentos
+1. Acesse: `https://seu-projeto.vercel.app`
+2. Role até o final da página "Resumo Geral"
+3. Faça upload da planilha Excel
+4. Aguarde o processamento
 
-### Método 1: Via Upload (Interface)
+## 🛠️ Desenvolvimento Local
 
-1. **Clique no botão "Novo Upload"** no canto superior direito do dashboard
-2. **Selecione ou arraste** seu arquivo Excel atualizado
-3. **Clique em "Enviar Arquivo"**
-4. **Aguarde o processamento** (automático)
-5. **Dashboard será atualizado automaticamente!**
+### Requisitos
 
-### Método 2: Manual
+- Python 3.8+
+- PostgreSQL (Neon ou local)
 
-Para adicionar um novo segmento ao dashboard:
-
-1. **Adicione uma nova aba no Excel** com o nome do segmento (ex: "Shoppings", "Aeroportos", etc.)
-2. **Execute o script de processamento**:
-   ```bash
-   python process_data.py
-   ```
-3. **Recarregue o dashboard** no navegador (F5)
-
-**É só isso!** O sistema irá:
-- Detectar automaticamente a nova aba
-- Processar os dados
-- Criar uma nova aba no dashboard
-- Renderizar tabela com busca integrada
-
-## 📤 Funcionalidade de Upload
-
-O botão **"Novo Upload"** permite atualizar o dashboard sem precisar de linha de comando:
-
-### Características:
-- ✅ **Interface visual** - Arraste e solte ou clique para selecionar
-- ✅ **Validação automática** - Verifica tipo e tamanho do arquivo
-- ✅ **Progresso visual** - Barra de progresso animada
-- ✅ **Processamento automático** - Gera dashboard_data.json automaticamente
-- ✅ **Atualização em tempo real** - Dashboard recarrega com novos dados
-- ✅ **Feedback imediato** - Mostra estatísticas após processamento
-
-### Limites:
-- **Tipos aceitos:** .xlsx, .xls
-- **Tamanho máximo:** 50MB
-- **Processamento:** Automático e seguro
-
-## 📊 Funcionalidades do Dashboard
-
-### 1. Visão Geral
-- Métricas principais (Total de Contatos, Ativos, Taxa de Resposta)
-- Gráfico de distribuição por UF
-- Gráfico de distribuição Público x Privado
-- Evolução temporal de contatos
-- Status de contratos
-
-### 2. Por Estados
-- Filtro por estado (SP, RS, SC, PR)
-- Métricas específicas por estado
-- Tabela completa com busca
-- Indicadores de contratos
-
-### 3. Oportunidades
-- Cards especiais para oportunidades prioritárias
-- Informações de contato destacadas
-- Observações e notas de acompanhamento
-- Visual diferenciado para fácil identificação
-
-### 4. Segmentos (Parques, etc.)
-- Tabela completa de cada segmento
-- Busca em tempo real
-- Visualização de até 8 colunas principais
-- Total de registros
-
-## 🔄 Atualização de Dados
-
-Sempre que atualizar o arquivo Excel:
-
-1. Execute o processamento:
-   ```bash
-   python process_data.py
-   ```
-
-2. Recarregue o dashboard no navegador (F5)
-
-## 🛠️ Tecnologias
-
-- **Python**: Processamento de dados (Pandas)
-- **Flask**: Servidor web para upload e API
-- **JavaScript**: Lógica do dashboard
-- **Chart.js**: Gráficos interativos
-- **HTML/CSS**: Interface do usuário
-- **JSON**: Formato de dados intermediário
-
-## 📦 Dependências
-
-### Instalação Rápida
+### Instalação
 
 ```bash
+# Clonar repositório
+git clone https://github.com/Dornelles81/Comercial.git
+cd Comercial
+
+# Instalar dependências
 pip install -r requirements.txt
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Edite .env e adicione sua DATABASE_URL
+
+# Inicializar banco de dados
+python -c "from database.db import Database; Database().init_database()"
+
+# Iniciar servidor Flask (desenvolvimento)
+python app_upload.py
+
+# Iniciar servidor HTTP para o frontend
+python -m http.server 8000
 ```
 
-### Ou instalar manualmente:
+### Acessar
 
-```bash
-pip install pandas openpyxl flask flask-cors
-```
+- **Upload**: http://localhost:5000
+- **Dashboard**: http://localhost:8000/dashboard_completo.html
 
-**Bibliotecas necessárias:**
-- `pandas` - Processamento de dados Excel
-- `openpyxl` - Leitura de arquivos .xlsx
-- `flask` - Servidor web
-- `flask-cors` - Suporte a CORS para API
+## 📊 Estrutura de Dados
 
-## 📝 Colunas Importantes
+### Banco de Dados (PostgreSQL)
 
-### Hospitais
-- NOME
-- PÚBLICO / PRIVADO
-- GRUPO
-- UF / CIDADE
-- RESPONSÁVEL
-- TELEFONE / E-MAIL
-- DATA DO ÚLTIMO CONTATO
-- CONTRATO
-- DETALHES DO CONTATO
+- `sheets`: Informações de cada aba da planilha
+- `records`: Registros individuais (JSONB)
+- `statistics`: Estatísticas agregadas (JSONB)
+- `column_mappings`: Mapeamento de colunas detectadas
 
-### Parques
-- NOME
-- GRUPO
-- UF / CIDADE
-- RESPONSÁVEL
-- TELEFONE
-- INAUGURAÇÃO
-- DETALHES
+### Colunas Reconhecidas Automaticamente
 
-## 🎨 Personalização
+- **NOME**: Nome do registro/empresa
+- **PÚBLICO / PRIVADO**: Tipo/classificação
+- **CIDADE**: Localização
+- **DATA DO ÚLTIMO CONTATO**: Data do contato
+- **CONTRATO**: Status do contrato
+- **GRUPO**: Grupo ou categoria
+- **OPER. ESTACIONAMENTO**: Operação de estacionamento
 
-O sistema foi projetado para ser extensível. Para adicionar novas funcionalidades:
+## 🔒 Segurança
 
-1. **Novos Gráficos**: Adicione funções no JavaScript (index.html)
-2. **Novos Filtros**: Adicione lógica de filtro nas funções de renderização
-3. **Novas Métricas**: Calcule no process_data.py e adicione no dashboard
+- ✅ Planilhas Excel não são commitadas no Git
+- ✅ Dados sensíveis armazenados no banco de dados
+- ✅ Variáveis de ambiente para credenciais
+- ✅ CORS configurado
 
-## 📞 Suporte
+## 📝 Documentação Adicional
 
-Para dúvidas ou problemas:
-1. Verifique se o servidor HTTP está rodando
-2. Confirme que o arquivo `dashboard_data.json` foi gerado
-3. Verifique o console do navegador (F12) para erros JavaScript
+- [GUIA_DE_USO.md](GUIA_DE_USO.md) - Guia completo de uso
+- [database/schema.sql](database/schema.sql) - Schema do banco de dados
 
-## 🔐 Segurança
+## 🤖 Tecnologias
 
-- O sistema roda localmente (localhost)
-- Não envia dados para servidores externos
-- Dados ficam armazenados apenas no seu computador
+- Python 3.8+
+- Flask + Flask-CORS
+- PostgreSQL (Neon)
+- Pandas + OpenPyXL + NumPy
+- Chart.js
+- Vercel (Serverless)
+
+## 📄 Licença
+
+Projeto privado - Todos os direitos reservados
+
+---
+
+**Desenvolvido com ❤️ para gestão comercial eficiente**
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

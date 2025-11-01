@@ -42,3 +42,10 @@ nul
 
 # Logs
 *.log
+
+# Environment variables
+.env
+.env.local
+
+# Vercel
+.vercel
