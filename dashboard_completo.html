@@ -500,7 +500,16 @@
         async function loadData() {
             try {
                 console.log('Iniciando carregamento de dados...');
-                const response = await fetch('all_sheets_data.json');
+
+                // Tentar API primeiro, fallback para JSON local em desenvolvimento
+                let response;
+                try {
+                    response = await fetch('/api/data');
+                    console.log('Carregando dados da API serverless...');
+                } catch (apiError) {
+                    console.warn('API não disponível, tentando JSON local...', apiError);
+                    response = await fetch('all_sheets_data.json');
+                }
 
                 if (!response.ok) {
                     throw new Error('Erro ao carregar dados: ' + response.status);
@@ -523,7 +532,7 @@
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
                 document.getElementById('loading').innerHTML =
-                    '<p style="color: red;">Erro ao carregar dados: ' + error.message + '</p>';
+                    '<p style="color: red;">Erro ao carregar dados: ' + error.message + '<br><small>Faça upload de uma planilha Excel para começar.</small></p>';
             }
         }
 
@@ -1603,7 +1612,12 @@
                 }, 200);
 
                 try {
-                    const response = await fetch('http://localhost:5000/upload', {
+                    // Usar API serverless (/api/upload) ou localhost em desenvolvimento
+                    const uploadUrl = window.location.hostname === 'localhost'
+                        ? 'http://localhost:5000/upload'
+                        : '/api/upload';
+
+                    const response = await fetch(uploadUrl, {
                         method: 'POST',
                         body: formData
                     });
