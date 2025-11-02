@@ -2,29 +2,23 @@
 API Serverless para upload e processamento de Excel
 Vercel Function
 """
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from http.server import BaseHTTPRequestHandler
+import json
 import sys
 import os
+import cgi
+import io
+import tempfile
+import pandas as pd
+from datetime import datetime, timedelta
+import numpy as np
 
 # Adicionar diretório raiz ao path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from database.db import Database
-from werkzeug.utils import secure_filename
-import tempfile
-import pandas as pd
-from datetime import datetime
-import numpy as np
-
-app = Flask(__name__)
-CORS(app)
 
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def clean_nan(obj):
     """Recursivamente converte NaN, inf, e -inf para None"""
@@ -110,7 +104,6 @@ def calculate_statistics(df, column_info):
                 contatos_por_ano = df_temp['ano'].value_counts().sort_index().to_dict()
                 stats['contatos_por_ano'] = {str(k): int(v) for k, v in contatos_por_ano.items()}
 
-                from datetime import timedelta
                 hoje = datetime.now()
                 doze_meses_atras = hoje - timedelta(days=365)
                 df_temp_12m = df_temp[df_temp['data_temp'] >= doze_meses_atras]
@@ -130,69 +123,99 @@ def calculate_statistics(df, column_info):
 
     return stats
 
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    """Endpoint para upload de arquivo Excel"""
-    try:
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'Nenhum arquivo enviado'}), 400
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        """Endpoint para upload de arquivo Excel"""
+        try:
+            # Parse multipart form data
+            content_type = self.headers.get('Content-Type')
+            if not content_type or 'multipart/form-data' not in content_type:
+                self.send_error(400, "Content-Type must be multipart/form-data")
+                return
 
-        file = request.files['file']
+            # Parse the form data
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={'REQUEST_METHOD': 'POST'}
+            )
 
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'Nenhum arquivo selecionado'}), 400
+            # Get the file
+            if 'file' not in form:
+                self.send_json_response(400, {'success': False, 'error': 'Nenhum arquivo enviado'})
+                return
 
-        if not allowed_file(file.filename):
-            return jsonify({'success': False, 'error': 'Tipo de arquivo não permitido'}), 400
+            file_item = form['file']
+            if not file_item.filename:
+                self.send_json_response(400, {'success': False, 'error': 'Nenhum arquivo selecionado'})
+                return
 
-        # Salvar temporariamente
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
-            file.save(tmp.name)
-            tmp_path = tmp.name
+            # Check file extension
+            filename = file_item.filename
+            if not ('.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS):
+                self.send_json_response(400, {'success': False, 'error': 'Tipo de arquivo não permitido'})
+                return
 
-        # Processar Excel
-        excel_file = pd.ExcelFile(tmp_path)
-        db = Database()
+            # Save temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+                tmp.write(file_item.file.read())
+                tmp_path = tmp.name
 
-        for sheet_name in excel_file.sheet_names:
-            df = pd.read_excel(excel_file, sheet_name=sheet_name)
-            df.columns = df.columns.str.strip()
+            # Process Excel
+            excel_file = pd.ExcelFile(tmp_path)
+            db = Database()
+            sheets_processed = 0
 
-            # Converter datas para string
-            for col in df.columns:
-                if pd.api.types.is_datetime64_any_dtype(df[col]):
-                    df[col] = df[col].astype(str).replace('NaT', None)
+            for sheet_name in excel_file.sheet_names:
+                df = pd.read_excel(excel_file, sheet_name=sheet_name)
+                df.columns = df.columns.str.strip()
 
-            df = df.where(pd.notna(df), None)
+                # Convert dates to string
+                for col in df.columns:
+                    if pd.api.types.is_datetime64_any_dtype(df[col]):
+                        df[col] = df[col].astype(str).replace('NaT', None)
 
-            column_info = detect_column_types(df)
-            stats = calculate_statistics(df, column_info)
+                df = df.where(pd.notna(df), None)
 
-            sheet_data = {
-                'name': sheet_name,
-                'total_records': len(df),
-                'records': df.to_dict('records'),
-                'statistics': stats,
-                'column_mapping': column_info,
-                'source_file': secure_filename(file.filename)
-            }
+                column_info = detect_column_types(df)
+                stats = calculate_statistics(df, column_info)
 
-            sheet_data_clean = clean_nan(sheet_data)
-            db.save_sheet_data(sheet_data_clean)
+                sheet_data = {
+                    'name': sheet_name,
+                    'total_records': len(df),
+                    'records': df.to_dict('records'),
+                    'statistics': stats,
+                    'column_mapping': column_info,
+                    'source_file': filename
+                }
 
-        # Remover arquivo temporário
-        os.unlink(tmp_path)
+                sheet_data_clean = clean_nan(sheet_data)
+                db.save_sheet_data(sheet_data_clean)
+                sheets_processed += 1
 
-        return jsonify({
-            'success': True,
-            'message': 'Arquivo processado com sucesso',
-            'sheets_count': len(excel_file.sheet_names)
-        })
+            # Remove temporary file
+            os.unlink(tmp_path)
 
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+            self.send_json_response(200, {
+                'success': True,
+                'message': 'Arquivo processado com sucesso',
+                'sheets_count': sheets_processed
+            })
 
-# Vercel handler
-def handler(request):
-    with app.request_context(request.environ):
-        return app.full_dispatch_request()
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': str(e)})
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def send_json_response(self, status_code, data):
+        """Helper to send JSON response"""
+        self.send_response(status_code)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())

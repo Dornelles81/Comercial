@@ -2,8 +2,8 @@
 API Serverless para buscar dados do dashboard
 Vercel Function
 """
-from flask import Flask, jsonify
-from flask_cors import CORS
+from http.server import BaseHTTPRequestHandler
+import json
 import sys
 import os
 
@@ -12,23 +12,34 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from database.db import Database
 
-app = Flask(__name__)
-CORS(app)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        """
+        Retorna todos os dados do dashboard
+        Formato compatível com all_sheets_data.json
+        """
+        try:
+            db = Database()
+            data = db.get_all_sheets_data()
 
-@app.route('/api/data', methods=['GET'])
-def get_data():
-    """
-    Retorna todos os dados do dashboard
-    Formato compatível com all_sheets_data.json
-    """
-    try:
-        db = Database()
-        data = db.get_all_sheets_data()
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
 
-# Vercel handler
-def handler(request):
-    with app.request_context(request.environ):
-        return app.full_dispatch_request()
+            self.wfile.write(json.dumps(data).encode())
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            error_response = {'error': str(e)}
+            self.wfile.write(json.dumps(error_response).encode())
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
