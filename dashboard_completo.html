@@ -500,38 +500,14 @@
         async function loadData() {
             try {
                 console.log('Iniciando carregamento de dados...');
-
-                // Detectar ambiente: localhost usa JSON, produção usa API
-                const isLocalhost = window.location.hostname === 'localhost' ||
-                                   window.location.hostname === '127.0.0.1';
-
-                let response;
-
-                if (isLocalhost) {
-                    // Localhost: carregar JSON local primeiro
-                    console.log('Ambiente local detectado - carregando all_sheets_data.json');
-                    response = await fetch('all_sheets_data.json');
-                } else {
-                    // Produção: tentar API, fallback para JSON
-                    try {
-                        console.log('Ambiente produção - tentando API...');
-                        response = await fetch('/api/data');
-                        console.log('Dados carregados da API serverless');
-                    } catch (apiError) {
-                        console.warn('API não disponível, usando JSON local', apiError);
-                        response = await fetch('all_sheets_data.json');
-                    }
-                }
+                const response = await fetch('all_sheets_data.json');
 
                 if (!response.ok) {
                     throw new Error('Erro ao carregar dados: ' + response.status);
                 }
 
                 const data = await response.json();
-                console.log('Dados carregados com sucesso:', {
-                    sheets: data.sheets?.length || 0,
-                    fonte: isLocalhost ? 'JSON local' : 'API/JSON'
-                });
+                console.log('Dados carregados:', data);
 
                 allSheetsData = data;
 
@@ -547,9 +523,7 @@
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
                 document.getElementById('loading').innerHTML =
-                    '<p style="color: red;">❌ Erro ao carregar dados: ' + error.message +
-                    '<br><br><small>💡 Certifique-se de que o arquivo <strong>all_sheets_data.json</strong> existe<br>' +
-                    'ou faça upload de uma planilha Excel em <a href="http://localhost:5000" style="color: #667eea;">http://localhost:5000</a></small></p>';
+                    '<p style="color: red;">Erro ao carregar dados: ' + error.message + '</p>';
             }
         }
 
@@ -1629,12 +1603,7 @@
                 }, 200);
 
                 try {
-                    // Usar API serverless (/api/upload) ou localhost em desenvolvimento
-                    const uploadUrl = window.location.hostname === 'localhost'
-                        ? 'http://localhost:5000/upload'
-                        : '/api/upload';
-
-                    const response = await fetch(uploadUrl, {
+                    const response = await fetch('http://localhost:5000/upload', {
                         method: 'POST',
                         body: formData
                     });
