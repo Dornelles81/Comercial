@@ -3,6 +3,7 @@ from flask_cors import CORS
 import pandas as pd
 import json
 import os
+from datetime import datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -108,6 +109,9 @@ def process_excel_file(filepath):
             'total_segmentos': total_segmentos,
             'total_oportunidades': len(all_data['oportunidades'])
         }
+
+        # Adicionar timestamp da atualização
+        all_data['last_updated'] = datetime.now().isoformat()
 
         # Salvar dados processados
         with open('dashboard_data.json', 'w', encoding='utf-8') as f:

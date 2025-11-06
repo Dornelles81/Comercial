@@ -58,12 +58,20 @@ def calculate_statistics(df, column_info):
 
     # Estatísticas de tipo (público/privado)
     if column_info['tipo']:
-        tipo_counts = df[column_info['tipo']].value_counts().to_dict()
+        # Normalizar valores (remover espaços extras)
+        tipo_normalized = df[column_info['tipo']].astype(str).str.strip().str.upper()
+        tipo_counts = tipo_normalized.value_counts().to_dict()
+        # Remover valores vazios/inválidos
+        tipo_counts = {k: v for k, v in tipo_counts.items() if k not in ['NAN', 'NONE', '']}
         stats['por_tipo'] = tipo_counts
 
     # Estatísticas de cidade
     if column_info['cidade']:
-        cidade_counts = df[column_info['cidade']].value_counts().head(10).to_dict()
+        # Normalizar valores (remover espaços extras)
+        cidade_normalized = df[column_info['cidade']].astype(str).str.strip()
+        cidade_counts = cidade_normalized.value_counts().head(10).to_dict()
+        # Remover 'nan' se existir
+        cidade_counts = {k: v for k, v in cidade_counts.items() if k.lower() != 'nan'}
         stats['top_cidades'] = cidade_counts
 
     # Estatísticas de contatos
@@ -80,7 +88,11 @@ def calculate_statistics(df, column_info):
 
     # Estatísticas de grupo
     if column_info['grupo']:
-        grupo_counts = df[column_info['grupo']].value_counts().head(10).to_dict()
+        # Normalizar valores (remover espaços extras)
+        grupo_normalized = df[column_info['grupo']].astype(str).str.strip()
+        grupo_counts = grupo_normalized.value_counts().head(10).to_dict()
+        # Remover 'nan' se existir
+        grupo_counts = {k: v for k, v in grupo_counts.items() if k.lower() != 'nan'}
         stats['top_grupos'] = grupo_counts
 
     # Estatísticas temporais de contatos
@@ -119,14 +131,22 @@ def calculate_statistics(df, column_info):
     # Verificar se há coluna de operação de estacionamento
     for col in df.columns:
         if 'estacionamento' in str(col).lower() and 'oper' in str(col).lower():
-            opera_est = df[col].value_counts().to_dict()
+            # Normalizar valores (remover espaços extras)
+            opera_normalized = df[col].astype(str).str.strip()
+            opera_est = opera_normalized.value_counts().to_dict()
+            # Remover 'nan' se existir
+            opera_est = {k: v for k, v in opera_est.items() if k.lower() != 'nan'}
             stats['operacao_estacionamento'] = opera_est
             break
 
     # Verificar se há coluna de cobrança de estacionamento
     for col in df.columns:
         if 'cobra' in str(col).lower():
-            cobra = df[col].value_counts().to_dict()
+            # Normalizar valores (remover espaços extras)
+            cobra_normalized = df[col].astype(str).str.strip()
+            cobra = cobra_normalized.value_counts().to_dict()
+            # Remover 'nan' se existir
+            cobra = {k: v for k, v in cobra.items() if k.lower() != 'nan'}
             stats['cobra_estacionamento'] = cobra
             break
 
