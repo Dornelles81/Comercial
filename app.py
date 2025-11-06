@@ -5,6 +5,7 @@ import json
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from process_excel_dynamic import process_excel
 
 app = Flask(__name__)
 CORS(app)
@@ -17,117 +18,6 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def process_excel_file(filepath):
-    """Processa o arquivo Excel e gera dashboard_data.json"""
-    try:
-        excel_file = pd.ExcelFile(filepath)
-
-        all_data = {
-            'estados': {},
-            'segmentos': {},
-            'oportunidades': [],
-            'estatisticas': {}
-        }
-
-        estados = ['SP', 'RS', 'SC', 'PR']
-        total_contatos = 0
-        total_ativos = 0
-
-        # Processar estados
-        for estado in estados:
-            sheet_name = f'Hospitais {estado}'
-            if sheet_name not in excel_file.sheet_names:
-                continue
-
-            df = pd.read_excel(excel_file, sheet_name=sheet_name)
-            records = df.to_dict('records')
-
-            # Processar datas
-            for record in records:
-                for key, value in record.items():
-                    if pd.isna(value):
-                        record[key] = None
-                    elif isinstance(value, pd.Timestamp):
-                        record[key] = value.isoformat()
-
-            all_data['estados'][estado] = {
-                'data': records,
-                'total': len(records),
-                'com_contrato': len([r for r in records if r.get('CONTRATO')]),
-                'sem_contrato': len([r for r in records if not r.get('CONTRATO')])
-            }
-
-            total_contatos += len(records)
-            total_ativos += len([r for r in records if r.get('DATA DO ÚLTIMO CONTATO ')])
-
-        # Processar outros segmentos
-        for sheet_name in excel_file.sheet_names:
-            if sheet_name.startswith('Hospitais ') or sheet_name == 'Oportunidades':
-                continue
-
-            df = pd.read_excel(excel_file, sheet_name)
-            records = df.to_dict('records')
-
-            for record in records:
-                for key, value in record.items():
-                    if pd.isna(value):
-                        record[key] = None
-                    elif isinstance(value, pd.Timestamp):
-                        record[key] = value.isoformat()
-
-            segment_key = sheet_name.lower().replace(' ', '_')
-            all_data['segmentos'][segment_key] = {
-                'nome': sheet_name,
-                'data': records,
-                'total': len(records),
-                'colunas': list(df.columns)
-            }
-
-        # Processar Oportunidades
-        if 'Oportunidades' in excel_file.sheet_names:
-            df_oportunidades = pd.read_excel(excel_file, 'Oportunidades')
-            records = df_oportunidades.to_dict('records')
-
-            for record in records:
-                for key, value in record.items():
-                    if pd.isna(value):
-                        record[key] = None
-                    elif isinstance(value, pd.Timestamp):
-                        record[key] = value.isoformat()
-
-            all_data['oportunidades'] = records
-
-        # Calcular estatísticas
-        total_segmentos = sum(seg['total'] for seg in all_data['segmentos'].values())
-
-        all_data['estatisticas'] = {
-            'total_contatos': total_contatos,
-            'total_ativos': total_ativos,
-            'taxa_resposta': round((total_ativos / total_contatos * 100) if total_contatos > 0 else 0, 1),
-            'total_estados': len([k for k, v in all_data['estados'].items() if v['total'] > 0]),
-            'total_segmentos': total_segmentos,
-            'total_oportunidades': len(all_data['oportunidades'])
-        }
-
-        # Adicionar timestamp da atualização
-        all_data['last_updated'] = datetime.now().isoformat()
-
-        # Salvar dados processados
-        with open('dashboard_data.json', 'w', encoding='utf-8') as f:
-            json.dump(all_data, f, ensure_ascii=False, indent=2)
-
-        return {
-            'success': True,
-            'message': 'Arquivo processado com sucesso!',
-            'stats': all_data['estatisticas']
-        }
-
-    except Exception as e:
-        return {
-            'success': False,
-            'message': f'Erro ao processar arquivo: {str(e)}'
-        }
 
 @app.route('/')
 def index():
@@ -156,23 +46,38 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # Processar arquivo
-        result = process_excel_file(filepath)
+        # Processar arquivo usando process_excel_dynamic
+        data = process_excel(filepath, 'all_sheets_data.json')
 
-        if result['success']:
-            return jsonify(result), 200
-        else:
-            return jsonify(result), 400
+        # Retornar sucesso com informações do processamento
+        return jsonify({
+            'success': True,
+            'message': 'Arquivo processado com sucesso!',
+            'data': {
+                'sheets_count': len(data.get('sheets', [])),
+                'last_updated': data.get('last_updated'),
+                'total_records': sum(s.get('total_records', 0) for s in data.get('sheets', []))
+            }
+        }), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erro no upload: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Erro no upload: {str(e)}'}), 500
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     try:
-        with open('dashboard_data.json', 'r', encoding='utf-8') as f:
+        with open('all_sheets_data.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
-            return jsonify({'success': True, 'stats': data['estatisticas']}), 200
+            # Calcular estatísticas gerais
+            total_records = sum(s.get('total_records', 0) for s in data.get('sheets', []))
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'total_records': total_records,
+                    'sheets_count': len(data.get('sheets', [])),
+                    'last_updated': data.get('last_updated')
+                }
+            }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
